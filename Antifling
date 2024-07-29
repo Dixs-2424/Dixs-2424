@@ -1,0 +1,102 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+
+-- Create the notification UI
+local function createNotification(text)
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "NotificationGui"
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 200, 0, 50)
+    frame.Position = UDim2.new(1, -210, 1, -110) -- Adjusted position to be higher
+    frame.BackgroundTransparency = 0.5
+    frame.BackgroundColor3 = Color3.new(0, 0, 0)
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 1, 1)
+    textLabel.TextScaled = true
+    textLabel.Text = text
+    textLabel.Parent = frame
+
+    -- Tween to fade out and destroy the notification after a few seconds
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, true)
+    local goal = {BackgroundTransparency = 1, TextTransparency = 1}
+    local tween = TweenService:Create(textLabel, tweenInfo, goal)
+
+    -- Show notification for 3 seconds
+    delay(3, function()
+        tween:Play()
+        tween.Completed:Connect(function()
+            screenGui:Destroy()
+        end)
+    end)
+end
+
+local function disableCharacterCollisions(character)
+    for _, child in pairs(character:GetDescendants()) do
+        if child:IsA("BasePart") and child.CanCollide and not child:IsDescendantOf(LocalPlayer.Character) then
+            child.CanCollide = false
+        end
+    end
+end
+
+local function onCharacterAdded(character)
+    disableCharacterCollisions(character)
+end
+
+local function onPlayerAdded(player)
+    if player ~= LocalPlayer then
+        player.CharacterAdded:Connect(onCharacterAdded)
+        if player.Character then
+            onCharacterAdded(player.Character)
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        onPlayerAdded(player)
+    end
+end
+
+local antiFlingActive = false
+
+local function enableAntiFling()
+    if antiFlingActive then return end
+    antiFlingActive = true
+
+    local connection
+    connection = RunService.Heartbeat:Connect(function()
+        if not LocalPlayer.Character or not LocalPlayer.Character.Parent then
+            connection:Disconnect()
+            return
+        end
+
+        -- Only check and disable collisions once per character
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                disableCharacterCollisions(player.Character)
+            end
+        end
+    end)
+end
+
+local function onLocalPlayerCharacterAdded(character)
+    enableAntiFling()
+    createNotification("Anti-Fling Activated!")
+end
+
+LocalPlayer.CharacterAdded:Connect(onLocalPlayerCharacterAdded)
+
+if LocalPlayer.Character then
+    onLocalPlayerCharacterAdded(LocalPlayer.Character)
+end
