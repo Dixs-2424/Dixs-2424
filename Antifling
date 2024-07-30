@@ -39,12 +39,14 @@ local function createNotification(text)
     end)
 end
 
--- Adjust physics properties to prevent fling
+-- Apply anti-fling adjustments to a single character
 local function adjustCharacterPhysics(character)
+    if not character or not character:IsA("Model") then return end
+
     for _, child in pairs(character:GetDescendants()) do
         if child:IsA("BasePart") then
-            child.CanCollide = false -- Disable collision
-            child.Anchored = false  -- Make sure it's not anchored to allow movement
+            child.CanCollide = false
+            child.Anchored = false
         end
     end
 end
@@ -58,17 +60,17 @@ local function applyAntiFling()
     end
 end
 
--- Handle character added
-local function onCharacterAdded(character)
+-- Handle new player or player character
+local function onPlayerCharacterAdded(character)
     adjustCharacterPhysics(character)
 end
 
 -- Handle new player
 local function onPlayerAdded(player)
     if player ~= LocalPlayer then
-        player.CharacterAdded:Connect(onCharacterAdded)
+        player.CharacterAdded:Connect(onPlayerCharacterAdded)
         if player.Character then
-            onCharacterAdded(player.Character)
+            onPlayerCharacterAdded(player.Character)
         end
     end
 end
@@ -93,7 +95,8 @@ local function enableAntiFling()
             return
         end
 
-        applyAntiFling() -- Apply to all characters to prevent fling
+        -- Ensure anti-fling logic is applied to all characters
+        applyAntiFling()
     end)
 end
 
