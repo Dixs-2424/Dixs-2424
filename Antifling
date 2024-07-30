@@ -39,18 +39,31 @@ local function createNotification(text)
     end)
 end
 
-local function disableCharacterCollisions(character)
+-- Adjust physics properties to prevent fling
+local function adjustCharacterPhysics(character)
     for _, child in pairs(character:GetDescendants()) do
-        if child:IsA("BasePart") and child.CanCollide and not child:IsDescendantOf(LocalPlayer.Character) then
-            child.CanCollide = false
+        if child:IsA("BasePart") then
+            child.CanCollide = false -- Disable collision
+            child.Anchored = false  -- Make sure it's not anchored to allow movement
         end
     end
 end
 
-local function onCharacterAdded(character)
-    disableCharacterCollisions(character)
+-- Apply anti-fling adjustments to all characters
+local function applyAntiFling()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            adjustCharacterPhysics(player.Character)
+        end
+    end
 end
 
+-- Handle character added
+local function onCharacterAdded(character)
+    adjustCharacterPhysics(character)
+end
+
+-- Handle new player
 local function onPlayerAdded(player)
     if player ~= LocalPlayer then
         player.CharacterAdded:Connect(onCharacterAdded)
@@ -62,6 +75,7 @@ end
 
 Players.PlayerAdded:Connect(onPlayerAdded)
 
+-- Apply to existing players
 for _, player in pairs(Players:GetPlayers()) do
     if player ~= LocalPlayer then
         onPlayerAdded(player)
@@ -74,22 +88,16 @@ local function enableAntiFling()
     if antiFlingActive then return end
     antiFlingActive = true
 
-    local connection
-    connection = RunService.Heartbeat:Connect(function()
+    RunService.Heartbeat:Connect(function()
         if not LocalPlayer.Character or not LocalPlayer.Character.Parent then
-            connection:Disconnect()
             return
         end
 
-        -- Only check and disable collisions once per character
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                disableCharacterCollisions(player.Character)
-            end
-        end
+        applyAntiFling() -- Apply to all characters to prevent fling
     end)
 end
 
+-- Initialize anti-fling when local player's character is added
 local function onLocalPlayerCharacterAdded(character)
     enableAntiFling()
     createNotification("Anti-Fling Activated!")
