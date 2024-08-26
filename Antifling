@@ -103,7 +103,7 @@ end
 -- Initialize anti-fling when local player's character is added
 local function onLocalPlayerCharacterAdded(character)
     enableAntiFling()
-    createNotification("Anti-Fling Activated!")
+    createNotification("pepek")
 end
 
 LocalPlayer.CharacterAdded:Connect(onLocalPlayerCharacterAdded)
